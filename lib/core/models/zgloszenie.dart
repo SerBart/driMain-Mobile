@@ -1,12 +1,11 @@
-// (Bez zmian – dla kompletności)
 class Zgloszenie {
   final int id;
   final String imie;
   final String nazwisko;
-  final String typ;
+  final String typ;         // AWARIA / SERWIS / INNE
   final DateTime dataGodzina;
   final String opis;
-  final String status;
+  final String status;      // NOWE / W TOKU / WERYFIKACJA / ZAMKNIĘTE
   final String? photoBase64;
   final DateTime lastUpdated;
 

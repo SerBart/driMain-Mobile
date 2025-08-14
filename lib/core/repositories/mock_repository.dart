@@ -146,12 +146,9 @@ class MockRepository {
     upsertRaport(updated);
   }
 
-// Fragment – tylko sekcja zgłoszeń z dopisanym komentarzem o photoBase64.
-// Upewnij się, że reszta pliku zostaje bez zmian.
-  Zgloszenie addZgloszenie(Zgloszenie z) {
+    Zgloszenie addZgloszenie(Zgloszenie z) {
     _zgloszenieId++;
     final newZ = z.copyWith(id: _zgloszenieId);
-    // newZ.photoBase64 już zawiera zdjęcie (jeśli dostarczone).
     zgloszenia.add(newZ);
     return newZ;
   }
@@ -165,8 +162,7 @@ class MockRepository {
       zgloszenia.add(updated.copyWith());
       return updated;
     }
-    // copyWith() zachowa photoBase64 (chyba że nadpiszesz parametrem)
-    zgloszenia[idx] = updated.copyWith();
+    zgloszenia[idx] = updated.copyWith(); // ustawi nowy lastUpdated
     return zgloszenia[idx];
   }
 
