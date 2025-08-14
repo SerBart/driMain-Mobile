@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +9,7 @@ import '../../widgets/app_card.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/status_chip.dart';
 import '../../widgets/table/data_table_pro.dart';
+import '../../widgets/photo_picker_field.dart';
 
 class ZgloszeniaScreenModern extends ConsumerStatefulWidget {
   const ZgloszeniaScreenModern({super.key});
@@ -25,6 +27,7 @@ class _ZgloszeniaScreenModernState
   final _opisCtrl = TextEditingController();
   String _status = 'NOWE';
   String _typSelected = 'Usterka';
+  String? _photoBase64;
   String _query = '';
   String _statusFilter = 'WSZYSTKIE';
   final _search = TextEditingController();
@@ -110,12 +113,14 @@ class _ZgloszeniaScreenModernState
           dataGodzina: DateTime.now(),
           opis: _opisCtrl.text.trim(),
           status: _status,
+          photoBase64: _photoBase64,
         ));
     _imieCtrl.clear();
     _nazCtrl.clear();
     _opisCtrl.clear();
     _status = 'NOWE';
     _typSelected = 'Usterka';
+    _photoBase64 = null;
     setState(() {});
   }
 
@@ -125,6 +130,7 @@ class _ZgloszeniaScreenModernState
     final opis = TextEditingController(text: z.opis);
     String typ = types.contains(z.typ) ? z.typ : types.first;
     String status = z.status;
+    String? photoBase64 = z.photoBase64;
 
     showDialog(
       context: context,
@@ -188,6 +194,12 @@ class _ZgloszeniaScreenModernState
                     decoration: const InputDecoration(labelText: 'Opis'),
                   ),
                   const SizedBox(height: 12),
+                  PhotoPickerField(
+                    initialBase64: photoBase64,
+                    onChanged: (value) => setLocal(() => photoBase64 = value),
+                    label: 'Zdjęcie (opcjonalne)',
+                  ),
+                  const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     value: status,
                     decoration: const InputDecoration(labelText: 'Status'),
@@ -227,6 +239,7 @@ class _ZgloszeniaScreenModernState
                                   typ: typ,
                                   opis: opis.text.trim(),
                                   status: status,
+                                  photoBase64: photoBase64,
                                 ),
                               );
                           Navigator.pop(context);
@@ -279,6 +292,51 @@ class _ZgloszeniaScreenModernState
         onSelected: (_) => setState(() => _statusFilter = label),
       ),
     );
+  }
+
+  Widget _buildPhotoThumbnail(String? photoBase64) {
+    if (photoBase64 == null || photoBase64.isEmpty) {
+      return const SizedBox(
+        width: 44,
+        height: 44,
+        child: Icon(Icons.image_not_supported, size: 18, color: Colors.grey),
+      );
+    }
+    
+    try {
+      final bytes = base64Decode(photoBase64);
+      return InkWell(
+        onTap: () => _showPhoto(photoBase64),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: Image.memory(
+            bytes, 
+            width: 44, 
+            height: 44, 
+            fit: BoxFit.cover
+          ),
+        ),
+      );
+    } catch (_) {
+      return const Icon(Icons.error, color: Colors.redAccent);
+    }
+  }
+
+  void _showPhoto(String base64) {
+    try {
+      final bytes = base64Decode(base64);
+      showDialog(
+        context: context,
+        builder: (_) => Dialog(
+          child: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: InteractiveViewer(
+              child: Image.memory(bytes, fit: BoxFit.contain),
+            ),
+          ),
+        ),
+      );
+    } catch (_) {}
   }
 
   @override
@@ -406,6 +464,12 @@ class _ZgloszeniaScreenModernState
                     maxLines: 3,
                     decoration: const InputDecoration(labelText: 'Opis'),
                   ),
+                  const SizedBox(height: 12),
+                  PhotoPickerField(
+                    initialBase64: _photoBase64,
+                    onChanged: (value) => setState(() => _photoBase64 = value),
+                    label: 'Zdjęcie (opcjonalne)',
+                  ),
                   const SizedBox(height: 16),
                   Align(
                     alignment: Alignment.centerRight,
@@ -446,6 +510,7 @@ class _ZgloszeniaScreenModernState
                   label: const Text('Status'),
                   onSort: (i, asc) => _onSort(i, asc),
                 ),
+                const DataColumn(label: Text('Zdjęcie')),
                 const DataColumn(label: Text('Opis')),
                 const DataColumn(label: Text('Akcje')),
               ],
@@ -457,6 +522,7 @@ class _ZgloszeniaScreenModernState
                     DataCell(Text(z.typ)),
                     DataCell(Text('${z.imie} ${z.nazwisko}')),
                     DataCell(StatusChip(status: z.status, useGradient: true)),
+                    DataCell(_buildPhotoThumbnail(z.photoBase64)),
                     DataCell(SizedBox(
                       width: 240,
                       child: Tooltip(
