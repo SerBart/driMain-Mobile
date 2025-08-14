@@ -1,21 +1,29 @@
 import 'dart:convert';
-import 'dart:typed_data';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+/// Uniwersalny widget do wyboru / podglądu zdjęcia w formularzach.
+/// Użycie:
+/// PhotoPickerField(
+///   base64: _photoBase64,
+///   onChanged: (b64) => setState(() => _photoBase64 = b64),
+/// )
 class PhotoPickerField extends StatefulWidget {
-  final String? initialBase64;
+  final String? base64;
   final ValueChanged<String?> onChanged;
-  final double previewSize;
-  final String label;
+  final double thumbSize;
+  final double maxWidth;
+  final int imageQuality;
+  final bool showRemove;
 
   const PhotoPickerField({
     super.key,
+    required this.base64,
     required this.onChanged,
-    this.initialBase64,
-    this.previewSize = 80,
-    this.label = 'Zdjęcie',
+    this.thumbSize = 80,
+    this.maxWidth = 1600,
+    this.imageQuality = 80,
+    this.showRemove = true,
   });
 
   @override
@@ -23,126 +31,112 @@ class PhotoPickerField extends StatefulWidget {
 }
 
 class _PhotoPickerFieldState extends State<PhotoPickerField> {
-  String? _base64;
+  bool _picking = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _base64 = widget.initialBase64;
-  }
-
-  Future<void> _pick() async {
-    final picker = ImagePicker();
-    final XFile? file = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1600,
-      imageQuality: 80,
-    );
-    if (file != null) {
-      final bytes = await file.readAsBytes();
-      final b64 = base64Encode(bytes);
-      setState(() => _base64 = b64);
-      widget.onChanged(b64);
-    }
-  }
-
-  void _remove() {
-    setState(() => _base64 = null);
-    widget.onChanged(null);
-  }
-
-  Uint8List? _decode() {
-    if (_base64 == null) return null;
+  Future<void> _pick({required bool camera}) async {
+    if (_picking) return;
+    _picking = true;
     try {
-      return base64Decode(_base64!);
-    } catch (_) {
-      return null;
+      final picker = ImagePicker();
+      final file = await picker.pickImage(
+        source: camera ? ImageSource.camera : ImageSource.gallery,
+        maxWidth: widget.maxWidth,
+        imageQuality: widget.imageQuality,
+      );
+      if (file != null) {
+        final bytes = await file.readAsBytes();
+        widget.onChanged(base64Encode(bytes));
+      }
+    } finally {
+      _picking = false;
     }
+  }
+
+  void _showBig() {
+    final b64 = widget.base64;
+    if (b64 == null) return;
+    late final Image image;
+    try {
+      image = Image.memory(base64Decode(b64), fit: BoxFit.contain);
+    } catch (_) {
+      return;
+    }
+    showDialog(
+      context: context,
+      builder: (_) => GestureDetector(
+        onTap: () => Navigator.pop(context),
+        child: Dialog(
+          backgroundColor: Colors.black,
+          insetPadding: const EdgeInsets.all(16),
+          child: InteractiveViewer(child: image),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final img = _decode();
-    return Column(
+    final has = widget.base64 != null;
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(widget.label,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: Colors.white,
-                )),
-        const SizedBox(height: 8),
-        Row(
+        InkWell(
+          onTap: has ? _showBig : null,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: widget.thumbSize,
+            height: widget.thumbSize,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.2),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant.withOpacity(.4),
+              ),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: has
+                ? Image.memory(
+                    base64Decode(widget.base64!),
+                    fit: BoxFit.cover,
+                  )
+                : Icon(
+                    Icons.image,
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(.4),
+                  ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (img != null)
-              Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.memory(
-                      img,
-                      width: widget.previewSize,
-                      height: widget.previewSize,
-                      fit: BoxFit.cover,
+            ElevatedButton.icon(
+              icon: const Icon(Icons.photo),
+              onPressed: () => _pick(camera: false),
+              label: Text(has ? 'Zmień zdjęcie' : 'Wybierz zdjęcie'),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.camera_alt_outlined),
+                  onPressed: () => _pick(camera: true),
+                  label: const Text('Aparat'),
+                ),
+                if (has && widget.showRemove) ...[
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: () => widget.onChanged(null),
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    label: const Text(
+                      'Usuń',
+                      style: TextStyle(color: Colors.red),
                     ),
                   ),
-                  Positioned(
-                    top: 2,
-                    right: 2,
-                    child: InkWell(
-                      onTap: _remove,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.close,
-                            size: 16, color: Colors.white),
-                      ),
-                    ),
-                  )
-                ],
-              )
-            else
-              Container(
-                width: widget.previewSize,
-                height: widget.previewSize,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(.08),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white24),
-                ),
-                child: const Icon(Icons.image, color: Colors.white54),
-              ),
-            const SizedBox(width: 16),
-            ElevatedButton.icon(
-              onPressed: _pick,
-              icon: const Icon(Icons.photo_library_outlined),
-              label: Text(img == null ? 'Wybierz zdjęcie' : 'Zmień'),
+                ]
+              ],
             ),
-            if (!kIsWeb) ...[
-              const SizedBox(width: 8),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final picker = ImagePicker();
-                  final XFile? shot = await picker.pickImage(
-                    source: ImageSource.camera,
-                    maxWidth: 1600,
-                    imageQuality: 80,
-                  );
-                  if (shot != null) {
-                    final bytes = await shot.readAsBytes();
-                    final b64 = base64Encode(bytes);
-                    setState(() => _base64 = b64);
-                    widget.onChanged(b64);
-                  }
-                },
-                icon: const Icon(Icons.photo_camera_outlined),
-                label: const Text('Aparat'),
-              ),
-            ],
           ],
-        ),
+        )
       ],
     );
   }
