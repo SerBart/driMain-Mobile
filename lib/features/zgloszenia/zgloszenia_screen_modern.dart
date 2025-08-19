@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -11,6 +9,7 @@ import '../../widgets/section_header.dart';
 import '../../widgets/status_chip.dart';
 import '../../widgets/table/data_table_pro.dart';
 import '../../widgets/photo_picker_field.dart';
+import '../../ui/modal_form_dialog.dart';
 
 class ZgloszeniaScreenModern extends ConsumerStatefulWidget {
   const ZgloszeniaScreenModern({super.key});
@@ -58,7 +57,6 @@ class _ZgloszeniaScreenModernState
           .toList();
     }
 
-    // Sort na kopii
     final sorted = List<Zgloszenie>.from(list);
     sorted.sort((a, b) {
       int cmp;
@@ -103,117 +101,82 @@ class _ZgloszeniaScreenModernState
 
     showDialog(
       context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 540),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: StatefulBuilder(
-              builder: (ctx, setLocal) => Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Text('Edytuj #${z.id}',
-                          style: Theme.of(context).textTheme.titleLarge),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
-                      )
-                    ],
+      builder: (_) => ModalFormDialog(
+        title: 'Edytuj #${z.id}',
+        submitLabel: 'Zapisz',
+        body: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: imie,
+                    decoration: const InputDecoration(labelText: 'Imię'),
                   ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: imie,
-                          decoration: const InputDecoration(labelText: 'Imię'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: nazw,
-                          decoration:
-                              const InputDecoration(labelText: 'Nazwisko'),
-                        ),
-                      ),
-                    ],
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: nazw,
+                    decoration: const InputDecoration(labelText: 'Nazwisko'),
                   ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: typ,
-                    decoration: const InputDecoration(labelText: 'Typ'),
-                    items: types
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                        .toList(),
-                    onChanged: (v) => setLocal(() => typ = v ?? typ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: opis,
-                    maxLines: 3,
-                    decoration: const InputDecoration(labelText: 'Opis'),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: status,
-                    decoration: const InputDecoration(labelText: 'Status'),
-                    items: const [
-                      DropdownMenuItem(value: 'NOWE', child: Text('NOWE')),
-                      DropdownMenuItem(value: 'W TOKU', child: Text('W TOKU')),
-                      DropdownMenuItem(
-                          value: 'WERYFIKACJA', child: Text('WERYFIKACJA')),
-                      DropdownMenuItem(
-                          value: 'ZAMKNIĘTE', child: Text('ZAMKNIĘTE')),
-                    ],
-                    onChanged: (v) => setLocal(() => status = v ?? status),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Ost. aktualizacja: ${DateFormat('yyyy-MM-dd HH:mm').format(z.lastUpdated)}',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: Colors.grey),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Anuluj'),
-                      ),
-                      const SizedBox(width: 8),
-                      FilledButton(
-                        onPressed: () {
-                          ref.read(mockRepoProvider).updateZgloszenie(
-                                z.copyWith(
-                                  imie: imie.text.trim(),
-                                  nazwisko: nazw.text.trim(),
-                                  typ: typ,
-                                  opis: opis.text.trim(),
-                                  status: status,
-                                ),
-                              );
-                          Navigator.pop(context);
-                          setState(() {});
-                        },
-                        child: const Text('Zapisz'),
-                      ),
-                    ],
-                  )
-                ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: typ,
+              decoration: const InputDecoration(labelText: 'Typ'),
+              items: types
+                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                  .toList(),
+              onChanged: (v) => typ = v ?? typ,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: opis,
+              maxLines: 3,
+              decoration: const InputDecoration(labelText: 'Opis'),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: status,
+              decoration: const InputDecoration(labelText: 'Status'),
+              items: const [
+                DropdownMenuItem(value: 'NOWE', child: Text('NOWE')),
+                DropdownMenuItem(value: 'W TOKU', child: Text('W TOKU')),
+                DropdownMenuItem(
+                    value: 'WERYFIKACJA', child: Text('WERYFIKACJA')),
+                DropdownMenuItem(value: 'ZAMKNIĘTE', child: Text('ZAMKNIĘTE')),
+              ],
+              onChanged: (v) => status = v ?? status,
+            ),
+            const SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Ost. aktualizacja: ${DateFormat('yyyy-MM-dd HH:mm').format(z.lastUpdated)}',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: Colors.grey),
               ),
             ),
-          ),
+          ],
         ),
+        onSubmit: () {
+          ref.read(mockRepoProvider).updateZgloszenie(
+                z.copyWith(
+                  imie: imie.text.trim(),
+                  nazwisko: nazw.text.trim(),
+                  typ: typ,
+                  opis: opis.text.trim(),
+                  status: status,
+                ),
+              );
+          Navigator.pop(context);
+          setState(() {});
+        },
       ),
     );
   }
@@ -255,153 +218,173 @@ class _ZgloszeniaScreenModernState
   }
 
   void _showAddDialog() {
-    final _formKey = GlobalKey<FormState>();
-    final _imieCtrl = TextEditingController();
-    final _nazCtrl = TextEditingController();
-    final _opisCtrl = TextEditingController();
-    String _status = 'NOWE';
-    String _typSelected = 'Usterka';
-    String? _photoBase64;
+    final formKey = GlobalKey<FormState>();
+    final imieCtrl = TextEditingController();
+    final nazCtrl = TextEditingController();
+    final opisCtrl = TextEditingController();
+    String status = 'NOWE';
+    String typSelected = 'Usterka';
+    String? photoBase64;
 
     showDialog(
       context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: StatefulBuilder(
-            builder: (ctx, setLocal) => Form(
-              key: _formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Text('Dodaj zgłoszenie',
-                            style: Theme.of(context).textTheme.titleLarge),
-                        const Spacer(),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.pop(context),
-                        )
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _imieCtrl,
-                            decoration:
-                                const InputDecoration(labelText: 'Imię'),
-                            validator: (v) => v == null || v.trim().isEmpty
-                                ? 'Wymagane'
-                                : null,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _nazCtrl,
-                            decoration:
-                                const InputDecoration(labelText: 'Nazwisko'),
-                            validator: (v) => v == null || v.trim().isEmpty
-                                ? 'Wymagane'
-                                : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: _typSelected,
-                      decoration: const InputDecoration(labelText: 'Typ'),
-                      items: types
-                          .map(
-                              (t) => DropdownMenuItem(value: t, child: Text(t)))
-                          .toList(),
-                      onChanged: (v) =>
-                          setLocal(() => _typSelected = v ?? _typSelected),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: _status,
-                      decoration: const InputDecoration(labelText: 'Status'),
-                      items: const [
-                        DropdownMenuItem(value: 'NOWE', child: Text('NOWE')),
-                        DropdownMenuItem(
-                            value: 'W TOKU', child: Text('W TOKU')),
-                        DropdownMenuItem(
-                            value: 'WERYFIKACJA', child: Text('WERYFIKACJA')),
-                        DropdownMenuItem(
-                            value: 'ZAMKNIĘTE', child: Text('ZAMKNIĘTE')),
-                      ],
-                      onChanged: (v) => setLocal(() => _status = v ?? 'NOWE'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _opisCtrl,
-                      maxLines: 3,
-                      decoration: const InputDecoration(labelText: 'Opis'),
-                    ),
-                    const SizedBox(height: 14),
-                    PhotoPickerField(
-                      initialBase64: _photoBase64,
-                      label: 'Zdjęcie (opcjonalne)',
-                      onChanged: (b64) => setLocal(() => _photoBase64 = b64),
-                    ),
-                    const SizedBox(height: 20),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: FilledButton.icon(
-                        icon: const Icon(Icons.add),
-                        onPressed: () {
-                          if (!_formKey.currentState!.validate()) return;
-                          ref.read(mockRepoProvider).addZgloszenie(Zgloszenie(
-                                id: 0,
-                                imie: _imieCtrl.text.trim(),
-                                nazwisko: _nazCtrl.text.trim(),
-                                typ: _typSelected,
-                                dataGodzina: DateTime.now(),
-                                opis: _opisCtrl.text.trim(),
-                                status: _status,
-                                photoBase64: _photoBase64,
-                              ));
-                          Navigator.pop(context);
-                          setState(() {});
-                        },
-                        label: const Text('Dodaj'),
-                      ),
-                    )
-                  ],
+      builder: (_) => ModalFormDialog(
+        title: 'Dodaj zgłoszenie',
+        submitLabel: 'Dodaj',
+        body: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: imieCtrl,
+                    decoration: const InputDecoration(labelText: 'Imię'),
+                    validator: (v) =>
+                        v == null || v.trim().isEmpty ? 'Wymagane' : null,
+                  ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: nazCtrl,
+                    decoration: const InputDecoration(labelText: 'Nazwisko'),
+                    validator: (v) =>
+                        v == null || v.trim().isEmpty ? 'Wymagane' : null,
+                  ),
+                ),
+              ],
             ),
-          ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: typSelected,
+              decoration: const InputDecoration(labelText: 'Typ'),
+              items: types
+                  .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                  .toList(),
+              onChanged: (v) => typSelected = v ?? typSelected,
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: status,
+              decoration: const InputDecoration(labelText: 'Status'),
+              items: const [
+                DropdownMenuItem(value: 'NOWE', child: Text('NOWE')),
+                DropdownMenuItem(value: 'W TOKU', child: Text('W TOKU')),
+                DropdownMenuItem(
+                    value: 'WERYFIKACJA', child: Text('WERYFIKACJA')),
+                DropdownMenuItem(value: 'ZAMKNIĘTE', child: Text('ZAMKNIĘTE')),
+              ],
+              onChanged: (v) => status = v ?? status,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: opisCtrl,
+              maxLines: 3,
+              decoration: const InputDecoration(labelText: 'Opis'),
+            ),
+            const SizedBox(height: 16),
+            PhotoPickerField(
+              initialBase64: photoBase64,
+              onChanged: (b64) => photoBase64 = b64,
+              label: 'Zdjęcie (opcjonalne)',
+            ),
+          ],
         ),
+        onSubmit: () {
+          if (!formKey.currentState!.validate()) return;
+        },
       ),
     );
-  }
 
-  void _showPhoto(String b64) {
-    try {
-      final bytes = b64 != null ? b64 : '';
-      showDialog(
-        context: context,
-        builder: (_) => Dialog(
-          child: GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: InteractiveViewer(
-              child: Image.memory(
-                bytes as Uint8List,
-                fit: BoxFit.contain,
+    // Zapis w onSubmit dialogu (użyj formKey gdy chcesz walidację):
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => ModalFormDialog(
+        title: 'Dodaj zgłoszenie',
+        submitLabel: 'Dodaj',
+        body: Form(
+          key: formKey,
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: imieCtrl,
+                      decoration: const InputDecoration(labelText: 'Imię'),
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? 'Wymagane' : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: nazCtrl,
+                      decoration: const InputDecoration(labelText: 'Nazwisko'),
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? 'Wymagane' : null,
+                    ),
+                  ),
+                ],
               ),
-            ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: typSelected,
+                decoration: const InputDecoration(labelText: 'Typ'),
+                items: types
+                    .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                    .toList(),
+                onChanged: (v) => typSelected = v ?? typSelected,
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: status,
+                decoration: const InputDecoration(labelText: 'Status'),
+                items: const [
+                  DropdownMenuItem(value: 'NOWE', child: Text('NOWE')),
+                  DropdownMenuItem(value: 'W TOKU', child: Text('W TOKU')),
+                  DropdownMenuItem(
+                      value: 'WERYFIKACJA', child: Text('WERYFIKACJA')),
+                  DropdownMenuItem(
+                      value: 'ZAMKNIĘTE', child: Text('ZAMKNIĘTE')),
+                ],
+                onChanged: (v) => status = v ?? status,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: opisCtrl,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: 'Opis'),
+              ),
+              const SizedBox(height: 16),
+              PhotoPickerField(
+                initialBase64: photoBase64,
+                onChanged: (b64) => photoBase64 = b64,
+                label: 'Zdjęcie (opcjonalne)',
+              ),
+            ],
           ),
         ),
-      );
-    } catch (_) {}
+        onSubmit: () {
+          if (!formKey.currentState!.validate()) return;
+          ref.read(mockRepoProvider).addZgloszenie(
+                Zgloszenie(
+                  id: 0,
+                  imie: imieCtrl.text.trim(),
+                  nazwisko: nazCtrl.text.trim(),
+                  typ: typSelected,
+                  dataGodzina: DateTime.now(),
+                  opis: opisCtrl.text.trim(),
+                  status: status,
+                  photoBase64: photoBase64,
+                ),
+              );
+          Navigator.pop(context);
+          setState(() {});
+        },
+      ),
+    );
   }
 
   @override

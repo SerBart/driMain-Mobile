@@ -59,7 +59,8 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                     Expanded(
                       child: TextField(
                         controller: _dzialCtrl,
-                        decoration: const InputDecoration(labelText: 'Nazwa działu'),
+                        decoration:
+                            const InputDecoration(labelText: 'Nazwa działu'),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -80,7 +81,8 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                       trailing: IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
                         onPressed: () async {
-                          final ok = await showConfirmDialog(context, 'Usuń dział', 'Usunąć ${d.nazwa}?');
+                          final ok = await showConfirmDialog(
+                              context, 'Usuń dział', 'Usunąć ${d.nazwa}?');
                           if (ok == true) {
                             repo.deleteDzial(d.id);
                             setState(() {});
@@ -99,7 +101,8 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                   value: _maszynaDzialId,
                   decoration: const InputDecoration(labelText: 'Dział'),
                   items: dzialy
-                      .map((d) => DropdownMenuItem(value: d.id, child: Text(d.nazwa)))
+                      .map((d) =>
+                          DropdownMenuItem(value: d.id, child: Text(d.nazwa)))
                       .toList(),
                   onChanged: (v) => setState(() => _maszynaDzialId = v),
                 ),
@@ -109,14 +112,17 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                     Expanded(
                       child: TextField(
                         controller: _maszynaCtrl,
-                        decoration: const InputDecoration(labelText: 'Nazwa maszyny'),
+                        decoration:
+                            const InputDecoration(labelText: 'Nazwa maszyny'),
                       ),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
                       onPressed: () {
-                        if (_maszynaCtrl.text.trim().isEmpty || _maszynaDzialId == null) return;
-                        repo.addMaszyna(_maszynaCtrl.text.trim(), _maszynaDzialId!);
+                        if (_maszynaCtrl.text.trim().isEmpty ||
+                            _maszynaDzialId == null) return;
+                        repo.addMaszyna(
+                            _maszynaCtrl.text.trim(), _maszynaDzialId!);
                         _maszynaCtrl.clear();
                         setState(() {});
                       },
@@ -131,7 +137,8 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                       trailing: IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
                         onPressed: () async {
-                          final ok = await showConfirmDialog(context, 'Usuń maszynę', 'Usunąć ${m.nazwa}?');
+                          final ok = await showConfirmDialog(
+                              context, 'Usuń maszynę', 'Usunąć ${m.nazwa}?');
                           if (ok == true) {
                             repo.deleteMaszyna(m.id);
                             setState(() {});
@@ -151,7 +158,8 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                     Expanded(
                       child: TextField(
                         controller: _osobaCtrl,
-                        decoration: const InputDecoration(labelText: 'Imię i nazwisko'),
+                        decoration:
+                            const InputDecoration(labelText: 'Imię i nazwisko'),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -172,7 +180,8 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                       trailing: IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
                         onPressed: () async {
-                          final ok = await showConfirmDialog(context, 'Usuń osobę', 'Usunąć ${o.imieNazwisko}?');
+                          final ok = await showConfirmDialog(context,
+                              'Usuń osobę', 'Usunąć ${o.imieNazwisko}?');
                           if (ok == true) {
                             repo.deleteOsoba(o.id);
                             setState(() {});
@@ -183,13 +192,14 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
               ],
             ),
           ),
-            _CardSection(
+          _CardSection(
             title: 'Użytkownicy',
             child: Column(
               children: [
                 TextField(
                   controller: _userLoginCtrl,
-                  decoration: const InputDecoration(labelText: 'Login użytkownika'),
+                  decoration:
+                      const InputDecoration(labelText: 'Login użytkownika'),
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
@@ -222,10 +232,12 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                         icon: const Icon(Icons.delete, color: Colors.red),
                         onPressed: () async {
                           if (u.username == 'admin') {
-                            showErrorDialog(context, 'Błąd', 'Nie usuwaj głównego admina (demo).');
+                            showErrorDialog(context, 'Błąd',
+                                'Nie usuwaj głównego admina (demo).');
                             return;
                           }
-                          final ok = await showConfirmDialog(context, 'Usuń użytkownika', 'Usunąć ${u.username}?');
+                          final ok = await showConfirmDialog(context,
+                              'Usuń użytkownika', 'Usunąć ${u.username}?');
                           if (ok == true) {
                             repo.deleteUser(u.id);
                             setState(() {});
@@ -237,7 +249,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
             ),
           ),
           const SizedBox(height: 40),
-          const Center(child: Text('To jest wersja DEMO (mock). Później podłączymy prawdziwe API.')),
+          const Center(child: Text('DEMO – dane mock.')),
         ],
       ),
     );
@@ -252,6 +264,7 @@ class _CardSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      margin: const EdgeInsets.only(bottom: 20),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(

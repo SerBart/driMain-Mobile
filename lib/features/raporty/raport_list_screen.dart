@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
+
 import '../../core/providers/app_providers.dart';
 import '../../core/models/raport.dart';
+import '../../widgets/app_scaffold.dart';
+import '../../widgets/section_header.dart';
+import '../../widgets/app_card.dart';
 import '../../widgets/status_chip.dart';
-import 'package:go_router/go_router.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../../widgets/table/data_table_pro.dart';
 import '../../widgets/dialogs.dart';
 
 class RaportyListScreen extends ConsumerStatefulWidget {
@@ -15,158 +20,245 @@ class RaportyListScreen extends ConsumerStatefulWidget {
 }
 
 class _RaportyListScreenState extends ConsumerState<RaportyListScreen> {
+  final _searchCtrl = TextEditingController();
   String _query = '';
-  int _sortColumnIndex = 0;
-  bool _sortAsc = true;
+  String _statusFilter = 'WSZYSTKIE';
 
-  List<Raport> _apply(List<Raport> source) {
-    var list = source.where((r) {
+  // Sort
+  int _sortCol = 3; // domyślnie po dacie
+  bool _asc = false;
+
+  final _dateFmt = DateFormat('yyyy-MM-dd');
+  final _timeFmt = DateFormat('HH:mm');
+
+  static const _statusy = [
+    'NOWY',
+    'W TOKU',
+    'OCZEKUJE',
+    'ZAKOŃCZONY',
+  ];
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  List<Raport> _filtered(List<Raport> all) {
+    var list = List<Raport>.from(all);
+
+    // Wyszukiwanie
+    if (_query.isNotEmpty) {
       final q = _query.toLowerCase();
-      return r.typNaprawy.toLowerCase().contains(q) ||
-          (r.maszyna?.nazwa.toLowerCase().contains(q) ?? false) ||
-          r.status.toLowerCase().contains(q);
-    }).toList();
+      list = list.where((r) {
+        return r.typNaprawy.toLowerCase().contains(q) ||
+            (r.maszyna?.nazwa.toLowerCase().contains(q) ?? false) ||
+            r.status.toLowerCase().contains(q) ||
+            r.id.toString() == q;
+      }).toList();
+    }
 
+    // Filtr statusu
+    if (_statusFilter != 'WSZYSTKIE') {
+      list = list
+          .where((r) => r.status.toUpperCase() == _statusFilter.toUpperCase())
+          .toList();
+    }
+
+    // Sort
     list.sort((a, b) {
       int cmp;
-      switch (_sortColumnIndex) {
-        case 0:
+      switch (_sortCol) {
+        case 0: // ID
+          cmp = a.id.compareTo(b.id);
+          break;
+        case 1: // Maszyna
           cmp = (a.maszyna?.nazwa ?? '').compareTo(b.maszyna?.nazwa ?? '');
           break;
-        case 1:
+        case 2: // Typ
           cmp = a.typNaprawy.compareTo(b.typNaprawy);
           break;
-        case 2:
+        case 3: // Data
+          cmp = a.dataNaprawy.compareTo(b.dataNaprawy);
+          break;
+        case 4: // Status
           cmp = a.status.compareTo(b.status);
           break;
-        case 3:
-          cmp = a.dataNaprawy.compareTo(b.dataNaprawy);
+        case 5: // Czas (czasOd)
+          cmp = a.czasOd.compareTo(b.czasOd);
           break;
         default:
           cmp = a.id.compareTo(b.id);
       }
-      return _sortAsc ? cmp : -cmp;
+      return _asc ? cmp : -cmp;
     });
+
     return list;
+  }
+
+  void _onSort(int index, bool asc) {
+    setState(() {
+      _sortCol = index;
+      _asc = asc;
+    });
+  }
+
+  Widget _statusChipFilter(String label) {
+    final sel = _statusFilter == label;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: sel,
+        onSelected: (_) => setState(() => _statusFilter = label),
+      ),
+    );
+  }
+
+  Future<void> _deleteRaport(Raport r) async {
+    final ok = await showConfirmDialog(
+      context,
+      'Usuń raport #${r.id}',
+      'Czy na pewno usunąć raport? Tej operacji nie można cofnąć (demo).',
+    );
+    if (ok == true) {
+      ref.read(mockRepoProvider).deleteRaport(r.id);
+      if (mounted) {
+        setState(() {});
+        showSuccessDialog(
+            context, 'Usunięto', 'Raport #${r.id} został usunięty.');
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final repo = ref.watch(mockRepoProvider);
-    final raporty = _apply(repo.getRaporty());
+    final raporty = _filtered(repo.getRaporty());
 
-    return Scaffold(
+    return AppScaffold(
       appBar: AppBar(
         title: const Text('Raporty'),
-        actions: [
-          IconButton(
-            tooltip: 'Dodaj raport',
-            icon: const Icon(Icons.add),
-            onPressed: () => context.go('/raport/nowy'),
-          )
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: TextField(
-              decoration: const InputDecoration(
-                labelText: 'Szukaj (maszyna / typ / status)',
-                prefixIcon: Icon(Icons.search),
-              ),
-              onChanged: (v) => setState(() => _query = v),
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                sortColumnIndex: _sortColumnIndex,
-                sortAscending: _sortAsc,
-                columns: [
-                  DataColumn(
-                    label: const Text('Maszyna'),
-                    onSort: (i, asc) => setState(() {
-                      _sortColumnIndex = i;
-                      _sortAsc = asc;
-                    }),
-                  ),
-                  DataColumn(
-                    label: const Text('Typ'),
-                    onSort: (i, asc) => setState(() {
-                      _sortColumnIndex = i;
-                      _sortAsc = asc;
-                    }),
-                  ),
-                  DataColumn(
-                    label: const Text('Status'),
-                    onSort: (i, asc) => setState(() {
-                      _sortColumnIndex = i;
-                      _sortAsc = asc;
-                    }),
-                  ),
-                  DataColumn(
-                    numeric: true,
-                    label: const Text('Data'),
-                    onSort: (i, asc) => setState(() {
-                      _sortColumnIndex = i;
-                      _sortAsc = asc;
-                    }),
-                  ),
-                  const DataColumn(label: Text('Akcje')),
-                ],
-                rows: raporty.map((r) {
-                  return DataRow(
-                    cells: [
-                      DataCell(Text(r.maszyna?.nazwa ?? '-')),
-                      DataCell(Text(r.typNaprawy)),
-                      DataCell(StatusChip(status: r.status)),
-                      DataCell(Text(
-                          '${r.dataNaprawy.year}-${r.dataNaprawy.month.toString().padLeft(2, '0')}-${r.dataNaprawy.day.toString().padLeft(2, '0')}')),
-                      DataCell(
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              tooltip: 'Edytuj',
-                              icon: const Icon(Icons.edit, color: Colors.blueAccent),
-                              onPressed: () => context.go('/raport/edytuj/${r.id}'),
-                            ),
-                            IconButton(
-                              tooltip: 'Usuń',
-                              icon: const Icon(Icons.delete, color: Colors.redAccent),
-                              onPressed: () async {
-                                final confirm = await showConfirmDialog(
-                                  context,
-                                  'Usuń raport',
-                                  'Czy na pewno usunąć?',
-                                );
-                                if (confirm == true) {
-                                  repo.deleteRaport(r.id);
-                                  setState(() {});
-                                  if (mounted) {
-                                    showSuccessDialog(context, 'OK', 'Raport usunięty');
-                                  }
-                                }
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go('/raport/nowy'),
-        icon: const Icon(FontAwesomeIcons.plus),
-        label: const Text('Nowy'),
+        icon: const Icon(Icons.add),
+        label: const Text('Nowy raport'),
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionHeader(
+            title: 'Raporty serwisowe',
+            subtitle: 'Ewidencja interwencji / napraw / prac utrzymaniowych',
+          ),
+          AppCard(
+            title: 'Filtrowanie',
+            divided: true,
+            child: Column(
+              children: [
+                TextField(
+                  controller: _searchCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Szukaj (maszyna / typ / status / ID)',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _query.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchCtrl.clear();
+                              setState(() => _query = '');
+                            },
+                          )
+                        : null,
+                  ),
+                  onChanged: (v) => setState(() => _query = v),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 38,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      _statusChipFilter('WSZYSTKIE'),
+                      ..._statusy.map(_statusChipFilter),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AppCard(
+            title: 'Lista raportów',
+            action: Text(
+              '${raporty.length} rekordów',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            child: DataTablePro(
+              columns: [
+                DataColumn(
+                  label: const Text('ID'),
+                  numeric: true,
+                  onSort: (i, asc) => _onSort(i, asc),
+                ),
+                DataColumn(
+                  label: const Text('Maszyna'),
+                  onSort: (i, asc) => _onSort(i, asc),
+                ),
+                DataColumn(
+                  label: const Text('Typ'),
+                  onSort: (i, asc) => _onSort(i, asc),
+                ),
+                DataColumn(
+                  label: const Text('Data'),
+                  onSort: (i, asc) => _onSort(i, asc),
+                ),
+                DataColumn(
+                  label: const Text('Status'),
+                  onSort: (i, asc) => _onSort(i, asc),
+                ),
+                DataColumn(
+                  label: const Text('Czas (od-do)'),
+                  onSort: (i, asc) => _onSort(i, asc),
+                ),
+                const DataColumn(label: Text('Akcje')),
+              ],
+              rows: raporty.map((r) {
+                final d = _dateFmt.format(r.dataNaprawy);
+                final czas =
+                    '${_timeFmt.format(r.czasOd)} - ${_timeFmt.format(r.czasDo)}';
+                return DataRow(
+                  cells: [
+                    DataCell(Text(r.id.toString())),
+                    DataCell(Text(r.maszyna?.nazwa ?? '-')),
+                    DataCell(Text(r.typNaprawy)),
+                    DataCell(Text(d)),
+                    DataCell(StatusChip(status: r.status, useGradient: true)),
+                    DataCell(Text(czas)),
+                    DataCell(
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: 'Edytuj',
+                            icon: const Icon(Icons.edit, size: 20),
+                            onPressed: () =>
+                                context.go('/raport/edytuj/${r.id}'),
+                          ),
+                          IconButton(
+                            tooltip: 'Usuń',
+                            icon: const Icon(Icons.delete, size: 20),
+                            onPressed: () => _deleteRaport(r),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
+        ],
       ),
     );
   }
