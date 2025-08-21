@@ -49,7 +49,6 @@ class AppScaffold extends StatelessWidget {
 
 class _NoGlowBehavior extends ScrollBehavior {
   const _NoGlowBehavior();
-  @override
   Widget buildViewportChrome(
       BuildContext context, Widget child, AxisDirection axisDirection) {
     return child;

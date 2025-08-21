@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/app_providers.dart';
-import '../../core/models/part.dart';
 
 class CzesciListScreen extends ConsumerStatefulWidget {
   const CzesciListScreen({super.key});
@@ -77,7 +76,8 @@ class _CzesciListScreenState extends ConsumerState<CzesciListScreen> {
                         Expanded(
                           child: TextField(
                             controller: _iloscCtrl,
-                            decoration: const InputDecoration(labelText: 'Ilość startowa'),
+                            decoration: const InputDecoration(
+                                labelText: 'Ilość startowa'),
                             keyboardType: TextInputType.number,
                           ),
                         ),
@@ -85,7 +85,8 @@ class _CzesciListScreenState extends ConsumerState<CzesciListScreen> {
                         Expanded(
                           child: TextField(
                             controller: _minCtrl,
-                            decoration: const InputDecoration(labelText: 'Min. ilość'),
+                            decoration:
+                                const InputDecoration(labelText: 'Min. ilość'),
                             keyboardType: TextInputType.number,
                           ),
                         ),
@@ -93,7 +94,8 @@ class _CzesciListScreenState extends ConsumerState<CzesciListScreen> {
                         Expanded(
                           child: TextField(
                             controller: _jednCtrl,
-                            decoration: const InputDecoration(labelText: 'Jednostka'),
+                            decoration:
+                                const InputDecoration(labelText: 'Jednostka'),
                           ),
                         ),
                       ],
